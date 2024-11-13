@@ -1,0 +1,62 @@
+﻿@page "/"
+@using MVC_Blazor.Model
+@using MVC_Blazor.Services
+
+@inject InscricaoService InscricaoService
+
+<PageTitle>Página Inicial - Venda de Cursos</PageTitle>
+
+<div class="container">
+    <header class="text-center my-5">
+        <h1>Bem-vindo à nossa plataforma de cursos!</h1>
+        <p>Aqui você encontra uma ampla variedade de cursos para todos os níveis.</p>
+        <a href="/cadastro-usuarios" class="btn btn-primary btn-lg">Inscreva-se agora</a>
+    </header>
+
+    <section class="my-5">
+        <h2>Cursos Populares</h2>
+        <div class="row">
+            @if (cursos.Count == 0)
+            {
+                <p>Nenhum curso disponível no momento.</p>
+            }
+            else
+            {
+                @foreach (var curso in cursos)
+                {
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">@curso.Nome_Curso</h5>
+                                <p class="card-text">@curso.Descricao</p>
+                                <p class="card-text"><strong>Carga Horária:</strong> @curso.Carga_Horaria horas</p>
+                                <p class="card-text"><strong>Valor:</strong> R$ @curso.Valor.ToString("F2")</p>
+                                <a href="/cursos" class="btn btn-secondary">Ver Detalhes</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </section>
+    <section class="my-5">
+        <h2>Depoimentos de Alunos</h2>
+        <blockquote class="blockquote">
+            <p>"A melhor plataforma de cursos que já utilizei! Os conteúdos são excelentes."</p>
+            <footer class="blockquote-footer">João Silva</footer>
+        </blockquote>
+        <blockquote class="blockquote">
+            <p>"Os cursos são muito bem estruturados e os instrutores são ótimos."</p>
+            <footer class="blockquote-footer">Maria Oliveira</footer>
+        </blockquote>
+    </section>
+</div>
+
+@code {
+    private List<Curso> cursos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        cursos = await InscricaoService.ObterCursosAsync();
+    }
+}

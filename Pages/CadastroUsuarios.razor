@@ -1,0 +1,76 @@
+﻿@page "/cadastro-usuarios"
+@using MVC_Blazor.Model
+@using MVC_Blazor.Services
+@inject InscricaoService InscricaoService
+
+<PageTitle>Cadastro de Usuários</PageTitle>
+
+<div class="container my-5">
+    <h1>Cadastro de Usuários</h1>
+
+    <h4>Lista de Usuários</h4>
+    <div class="row">
+        @if (usuarios.Count == 0)
+        {
+            <p>Nenhum usuário cadastrado no momento.</p>
+        }
+        else
+        {
+            @foreach (var usuario in usuarios)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">@usuario.Nome</h5>
+                            <p class="card-text"><strong>Email:</strong> @usuario.Email</p>
+                            <p class="card-text"><strong>Status:</strong> @usuario.Status</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <h4 class="mt-5">Cadastrar Novo Usuário</h4>
+    <EditForm Model="novoUsuario" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="nome" class="form-label">Nome</label>
+            <InputText id="nome" class="form-control" @bind-Value="novoUsuario.Nome" />
+            <ValidationMessage For="@(() => novoUsuario.Nome)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <InputText id="email" type="email" class="form-control" @bind-Value="novoUsuario.Email" />
+            <ValidationMessage For="@(() => novoUsuario.Email)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="senha" class="form-label">Senha</label>
+            <InputText id="senha" type="password" class="form-control" @bind-Value="novoUsuario.Senha" />
+            <ValidationMessage For="@(() => novoUsuario.Senha)" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Cadastrar Usuário</button>
+    </EditForm>
+</div>
+
+@code {
+    private List<Usuario> usuarios = new();
+    private Usuario novoUsuario = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        usuarios = await InscricaoService.ObterUsuariosAsync(); 
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await InscricaoService.CadastrarUsuarioAsync(novoUsuario); 
+        usuarios = await InscricaoService.ObterUsuariosAsync();
+        novoUsuario = new Usuario(); 
+    }
+}
