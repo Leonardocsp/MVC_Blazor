@@ -1,0 +1,137 @@
+﻿@page "/cursos"
+@using MVC_Blazor.Model
+@using MVC_Blazor.Services
+@inject InscricaoService InscricaoService
+@inject AuthService authService 
+
+<PageTitle>Cursos Disponíveis</PageTitle>
+
+<div class="container my-5">
+    <h1>Cursos Disponíveis</h1>
+
+    <h4>Lista de Cursos</h4>
+    <div class="row">
+        @if (cursos.Count == 0)
+        {
+            <p>Nenhum curso disponível no momento.</p>
+        }
+        else
+        {
+            @foreach (var curso in cursos)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">@curso.Nome_Curso</h5>
+                            <p class="card-text">@curso.Descricao</p>
+                            <p class="card-text"><strong>Carga Horária:</strong> @curso.Carga_Horaria horas</p>
+                            <p class="card-text"><strong>Valor:</strong> R$ @curso.Valor.ToString("F2")</p>
+                            <a href="/cursos" class="btn btn-secondary">Ver Detalhes</a>
+
+                            @if (authService.IsUserLoggedIn && authService.GetUserId() == 1) 
+                            {   <button class="btn btn-warning" @onclick="() => EditarCurso(curso)">Editar</button>
+                                <button class="btn btn-danger" @onclick="() => ExcluirCurso(curso.ID_Curso)">Excluir</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @if (authService.IsUserLoggedIn && authService.GetUserId() == 1) 
+        {
+         <h4 class="mt-5">@((novoCurso.ID_Curso == 0) ? "Cadastrar Novo Curso" : "Editar Curso")</h4>
+        <EditForm Model="novoCurso" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="nomeCurso" class="form-label">Nome do Curso</label>
+                <InputText id="nomeCurso" class="form-control" @bind-Value="novoCurso.Nome_Curso" />
+                <ValidationMessage For="@(() => novoCurso.Nome_Curso)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="descricao" class="form-label">Descrição</label>
+                <InputTextArea id="descricao" class="form-control" @bind-Value="novoCurso.Descricao" />
+            </div>
+
+            <div class="mb-3">
+                <label for="cargaHoraria" class="form-label">Carga Horária</label>
+                <InputNumber id="cargaHoraria" class="form-control" @bind-Value="novoCurso.Carga_Horaria" />
+                <ValidationMessage For="@(() => novoCurso.Carga_Horaria)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="valor" class="form-label">Valor</label>
+                <InputNumber id="valor" class="form-control" @bind-Value="novoCurso.Valor" />
+                <ValidationMessage For="@(() => novoCurso.Valor)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="dataInicio" class="form-label">Data de Início</label>
+                <InputDate id="dataInicio" class="form-control" @bind-Value="novoCurso.Data_Inicio" />
+                <ValidationMessage For="@(() => novoCurso.Data_Inicio)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="dataFim" class="form-label">Data de Fim</label>
+                <InputDate id="dataFim" class="form-control" @bind-Value="novoCurso.Data_Fim" />
+                <ValidationMessage For="@(() => novoCurso.Data_Fim)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">@((novoCurso.ID_Curso == 0) ? "Cadastrar Curso" : "Atualizar Curso")</button>
+            <button type="button" class="btn btn-secondary" @onclick="CancelarEdicao">Cancelar</button>
+        </EditForm>
+    }
+    else
+    {
+        <p>Para cadastrar um novo curso, você precisa estar logado como administrador.</p>
+    }
+</div>
+
+@code {
+    private List<Curso> cursos = new();
+    private Curso novoCurso = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarCursos();
+    }
+
+    private async Task CarregarCursos()
+    {
+        cursos = await InscricaoService.ObterCursosAsync();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (novoCurso.ID_Curso == 0)
+        {
+            await InscricaoService.CadastrarCursoAsync(novoCurso);
+        }
+        else
+        {
+            await InscricaoService.AtualizarCursoAsync(novoCurso, authService.GetUserId());
+        }
+        await CarregarCursos();
+        novoCurso = new Curso(); 
+    }
+
+    private void EditarCurso(Curso curso)
+    {
+        novoCurso = curso; 
+    }
+
+    private async Task ExcluirCurso(int id)
+    {
+        await InscricaoService.ExcluirCursoAsync(id, authService.GetUserId());
+        await CarregarCursos(); 
+    }
+
+    private void CancelarEdicao()
+    {
+        novoCurso = new Curso(); 
+    }
+}

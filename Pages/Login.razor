@@ -1,0 +1,57 @@
+﻿@page "/login"
+@using MVC_Blazor.Model
+@using MVC_Blazor.Services
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Login</PageTitle>
+
+<div class="container my-5">
+    <h1>Login</h1>
+
+    <EditForm Model="loginModel" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <InputText id="email" class="form-control" @bind-Value="loginModel.Email" />
+            <ValidationMessage For="@(() => loginModel.Email)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="username" class="form-label">Nome de Usuário</label>
+            <InputText id="username" class="form-control" @bind-Value="loginModel.Nome" />
+            <ValidationMessage For="@(() => loginModel.Nome)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">Senha</label>
+            <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Senha" />
+            <ValidationMessage For="@(() => loginModel.Senha)" />
+        </div>
+
+        <ValidationMessage For="@(() => loginErrorMessage)" />
+
+        <button type="submit" class="btn btn-primary">Entrar</button>
+    </EditForm>
+</div>
+
+@code {
+    private Usuario loginModel = new Usuario();
+    private string loginErrorMessage;
+
+    private async Task HandleValidSubmit()
+    {
+        var user = await AuthService.LoginAsync(loginModel.Email, loginModel.Senha, loginModel.Nome);
+
+        if (user)
+        {
+            NavigationManager.NavigateTo("/"); 
+        }
+        else
+        {
+            loginErrorMessage = "Email, nome de usuário ou senha inválidos.";
+        }
+    }
+}

@@ -1,0 +1,209 @@
+﻿@page "/inscricoes"
+@using MVC_Blazor.Model
+@using MVC_Blazor.Services
+@inject InscricaoService InscricaoService
+@inject AuthService AuthService
+
+<PageTitle>Inscrições</PageTitle>
+
+@if (!AuthService.IsUserLoggedIn)
+{
+    <div class="alert alert-danger">Você não está autenticado. Por favor, faça login para continuar.</div>
+}
+else
+{
+    <div class="container my-5">
+        <h1>Inscrições</h1>
+
+        @if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="alert alert-danger">@mensagemErro</div>
+        }
+
+        <h4>Lista de Inscrições</h4>
+        <div class="row">
+            @if (inscricoes.Count == 0)
+            {
+                <p>Nenhuma inscrição disponível no momento.</p>
+            }
+            else
+            {
+                @foreach (var inscricao in inscricoes)
+                {
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Inscrição ID: @inscricao.ID_Inscricao</h5>
+                                <p class="card-text"><strong>ID do Usuário:</strong> @inscricao.ID_Usuario</p>
+                                <p class="card-text"><strong>ID do Curso:</strong> @inscricao.ID_Curso</p>
+                                <p class="card-text"><strong>Status:</strong> @inscricao.Status_Inscricao</p>
+                                <p class="card-text"><strong>Data da Inscrição:</strong> @inscricao.Data_Inscricao.ToShortDateString()</p>
+                                <a href="/inscricoes" @onclick="() => EditarInscricao(inscricao.ID_Inscricao)" class="btn btn-secondary">Editar Inscrição</a>
+                                <button @onclick="() => ExcluirInscricao(inscricao.ID_Inscricao)" class="btn btn-danger">Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <h4 class="mt-5">@((novaInscricao.ID_Inscricao == 0) ? "Cadastrar Nova Inscrição" : "Confirmar Edição")</h4>
+        <EditForm Model="novaInscricao" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="nomeUsuario" class="form-label">Nome do Usuário</label>
+                <InputText id="nomeUsuario" class="form-control" @bind-Value="nomeUsuario" @oninput="OnUsuarioInput" disabled="@(novaInscricao.ID_Inscricao != 0)" />
+                <ul class="list-group mt-2">
+                    @foreach (var usuario in usuarioSugestoes)
+                    {
+                        <li class="list-group-item list-group-item-action" @onclick="() => SelecionarUsuario(usuario)">
+                            @usuario.Nome
+                        </li>
+                    }
+                </ul>
+                <ValidationMessage For="@(() => novaInscricao.ID_Usuario)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="nomeCurso" class="form-label">Nome do Curso</label>
+                <InputText id="nomeCurso" class="form-control" @bind-Value="nomeCurso" @oninput="OnCursoInput" />
+                <ul class="list-group mt-2">
+                    @foreach (var curso in cursoSugestoes)
+                    {
+                        <li class="list-group-item list-group-item-action" @onclick="() => SelecionarCurso(curso)">
+                            @curso.Nome_Curso
+                        </li>
+                    }
+                </ul>
+                <ValidationMessage For="@(() => novaInscricao.ID_Curso)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">@((novaInscricao.ID_Inscricao == 0) ? "Cadastrar Inscrição" : "Confirmar Edição")</button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private List<Inscricao> inscricoes = new();
+    private List<Usuario> usuarios = new();
+    private List<Curso> cursos = new();
+    private List<Usuario> usuarioSugestoes = new();
+    private List<Curso> cursoSugestoes = new();
+    private Inscricao novaInscricao = new();
+
+    private string? nomeUsuario;
+    private string? nomeCurso;
+    private string? mensagemErro;
+    private int usuarioLogadoId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsUserLoggedIn)
+        {
+            return; 
+        }
+
+        usuarioLogadoId = AuthService.GetUserId();
+        await CarregarDados();
+    }
+
+    private async Task CarregarDados()
+    {
+        inscricoes = await InscricaoService.ObterInscricoesPorUsuarioAsync(usuarioLogadoId);
+        usuarios = await InscricaoService.ObterUsuariosAsync();
+        cursos = await InscricaoService.ObterCursosAsync();
+    }
+
+    private async Task ExcluirInscricao(int id)
+    {
+        var confirmResult = await ConfirmarExclusao();
+        if (confirmResult)
+        {
+            await InscricaoService.ExcluirInscricaoAsync(id);
+            await CarregarDados(); 
+        }
+    }
+
+    private Task<bool> ConfirmarExclusao()
+    {
+        return Task.FromResult(true); 
+    }
+
+    private void OnUsuarioInput(ChangeEventArgs e)
+    {
+        nomeUsuario = e.Value?.ToString() ?? string.Empty;
+        usuarioSugestoes = usuarios
+            .Where(u => u.Nome != null && u.Nome.Contains(nomeUsuario, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private void OnCursoInput(ChangeEventArgs e)
+    {
+        nomeCurso = e.Value?.ToString() ?? string.Empty;
+        cursoSugestoes = cursos
+            .Where(c => c.Nome_Curso != null && c.Nome_Curso.Contains(nomeCurso, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private void SelecionarUsuario(Usuario usuario)
+    {
+        novaInscricao.ID_Usuario = usuario.ID_Usuario;
+        nomeUsuario = usuario.Nome;
+        usuarioSugestoes.Clear();
+    }
+
+    private void SelecionarCurso(Curso curso)
+    {
+        novaInscricao.ID_Curso = curso.ID_Curso;
+        nomeCurso = curso.Nome_Curso;
+        cursoSugestoes.Clear();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (await InscricaoService.UsuarioValidoAsync(novaInscricao.ID_Usuario) &&
+            await InscricaoService.CursoValidoAsync(novaInscricao.ID_Curso))
+        {
+            if (novaInscricao.ID_Inscricao == 0)
+            {
+                await InscricaoService.AdicionarInscricaoAsync(novaInscricao);
+            }
+            else
+            {
+                await InscricaoService.AtualizarInscricaoAsync(novaInscricao);
+            }
+
+            await CarregarDados(); 
+            ResetarFormulario();
+        }
+        else
+        {
+            mensagemErro = "Usuário ou curso inválidos.";
+        }
+    }
+
+    private void ResetarFormulario()
+    {
+        novaInscricao = new Inscricao();
+        nomeUsuario = string.Empty;
+        nomeCurso = string.Empty;
+        mensagemErro = string.Empty;
+        usuarioSugestoes.Clear();
+        cursoSugestoes.Clear();
+    }
+
+    private async Task EditarInscricao(int id)
+    {
+        var inscricao = await InscricaoService.ObterInscricaoPorIdAsync(id);
+        if (inscricao != null)
+        {
+            novaInscricao = inscricao;
+            nomeUsuario = usuarios.FirstOrDefault(u => u.ID_Usuario == inscricao.ID_Usuario)?.Nome; 
+            nomeCurso = cursos.FirstOrDefault(c => c.ID_Curso == inscricao.ID_Curso)?.Nome_Curso; 
+            usuarioSugestoes.Clear();
+            cursoSugestoes.Clear();
+        }
+    }
+}
